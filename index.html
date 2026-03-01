@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="theme-color" content="#1e293b" />
+    <meta name="description"
+        content="Aplikasi Laporan Pekerjaan Harian - catat dan export laporan kerja harian ke Excel" />
+    <title>Laporan Harian Kerja</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Laporan Harian" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <!-- ExcelJS for Excel export with full styling support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Noise grain texture -->
+    <div class="noise"></div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="header-title">
+                <div class="header-icon">📋</div>
+                <div>
+                    <h1>Laporan Harian</h1>
+                    <p class="header-sub">Laporan Pekerjaan Harian</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline" id="btnPrevMonth" title="Bulan sebelumnya">‹</button>
+                <span class="month-label" id="monthLabel">—</span>
+                <button class="btn btn-outline" id="btnNextMonth" title="Bulan berikutnya">›</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- User Info Card -->
+        <section class="card user-card" id="userCard">
+            <div class="card-header">
+                <span class="card-icon">👤</span>
+                <h2>Informasi Karyawan</h2>
+                <button class="btn-edit-user" id="btnEditUser" title="Edit">✏️</button>
+            </div>
+            <div class="user-info-display" id="userInfoDisplay">
+                <div class="user-fields">
+                    <div class="user-field"><span class="label">Nama</span><span class="value" id="dispNama">—</span>
+                    </div>
+                    <div class="user-field"><span class="label">Jabatan</span><span class="value"
+                            id="dispJabatan">—</span></div>
+                    <div class="user-field"><span class="label">Divisi/Unit</span><span class="value"
+                            id="dispDivisi">—</span></div>
+                    <div class="user-field"><span class="label">No. Karyawan</span><span class="value"
+                            id="dispNomor">—</span></div>
+                </div>
+            </div>
+            <div class="user-info-form hidden" id="userInfoForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nama Lengkap</label>
+                        <input type="text" id="inputNama" placeholder="Masukkan nama lengkap" />
+                    </div>
+                    <div class="form-group">
+                        <label>Jabatan</label>
+                        <input type="text" id="inputJabatan" placeholder="Masukkan jabatan" />
+                    </div>
+                    <div class="form-group">
+                        <label>Divisi / Unit Kerja</label>
+                        <input type="text" id="inputDivisi" placeholder="Masukkan divisi/unit kerja" />
+                    </div>
+                    <div class="form-group">
+                        <label>Nomor Karyawan</label>
+                        <input type="text" id="inputNomor" placeholder="Masukkan nomor karyawan (opsional)" />
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" id="btnSaveUser">💾 Simpan Data Karyawan</button>
+            </div>
+        </section>
+
+        <!-- Legend -->
+        <section class="card legend-card">
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-dot green"></span>
+                    <span>Jam Kerja Normal</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot yellow"></span>
+                    <span>Lembur</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot red"></span>
+                    <span>Hari Minggu / Libur</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="stats-row">
+            <div class="stat-card">
+                <div class="stat-num" id="statKerja">0</div>
+                <div class="stat-label">Hari Kerja</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="statLembur">0</div>
+                <div class="stat-label">Lembur</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="statLibur">0</div>
+                <div class="stat-label">Libur</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="statIsi">0</div>
+                <div class="stat-label">Terisi</div>
+            </div>
+        </section>
+
+        <!-- Days Table / List -->
+        <section class="card table-card">
+            <div class="table-header">
+                <h2>📆 Daftar Hari</h2>
+                <div class="table-actions">
+                    <button class="btn btn-outline btn-sm" id="btnMarkAllHoliday">
+                        🔴 Tandai Semua Libur
+                    </button>
+                </div>
+            </div>
+            <div id="daysList" class="days-list"></div>
+        </section>
+
+        <!-- Export -->
+        <section class="export-section">
+            <button class="btn btn-export" id="btnExport">
+                <span class="export-icon">📊</span>
+                <span>Download Excel (.xlsx)</span>
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Day Edit Modal -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalTitle">Edit Laporan</h3>
+                    <p id="modalSubtitle" class="modal-sub"></p>
+                </div>
+                <button class="btn-close" id="btnCloseModal">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Day Type -->
+                <div class="form-group">
+                    <label>Jenis Hari</label>
+                    <div class="type-selector">
+                        <button class="type-btn active" data-type="normal" id="typeNormal">
+                            <span class="dot green"></span> Normal
+                        </button>
+                        <button class="type-btn" data-type="lembur" id="typeLembur">
+                            <span class="dot yellow"></span> Lembur
+                        </button>
+                        <button class="type-btn" data-type="libur" id="typeLibur">
+                            <span class="dot red"></span> Libur / Merah
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tasks -->
+                <div class="form-group">
+                    <label>Keterangan Pekerjaan</label>
+                    <div id="tasksList"></div>
+                    <button class="btn btn-outline btn-sm btn-add-task" id="btnAddTask">+ Tambah Pekerjaan</button>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                    <label>Keterangan / Nyetir</label>
+                    <input type="text" id="inputNotes" placeholder="Keterangan tambahan (opsional)" />
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btnClearDay">🗑️ Kosongkan</button>
+                <button class="btn btn-primary" id="btnSaveDay">💾 Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker for PWA offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('[PWA] Service Worker registered:', reg.scope))
+                    .catch(err => console.warn('[PWA] SW registration failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
